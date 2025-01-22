@@ -9,9 +9,21 @@ uv sync --all-extras --dev
 uv run tinypy -v
 ```
 
-## Testing - to be improved
+## Testing
+
+```sh
+uv run pytest
+```
+
+and also REPL tests
 
 ```sh
 chmod +x test.sh
 ./test.sh
 ```
+
+## TODO
+
+- [ ] Error handling
+  - [ ] Syntax errors
+  - [ ] Runtime errors

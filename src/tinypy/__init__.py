@@ -1,18 +1,24 @@
 import sys
-from tinypy.tokenizer import tokenize
-from tinypy.parser import parse
+from tinypy.parser import parse, Evaluator
 
 
 __version__ = "0.1.0"
 USAGE = "usage: tinypy or tinypy script.py"
 
 
-def run(source: str):
-    # tokens = tokenize(source)
-    # for token in tokens:
-    #     print(token)
+def evaluate(source: str):
     expr = parse(source)
-    print(expr)
+
+    evaluator = Evaluator()
+    value = evaluator.evaluate(expr)
+
+    return value
+
+
+def run(source: str):
+    value = evaluate(source)
+
+    print(value)
 
 
 def run_repl():

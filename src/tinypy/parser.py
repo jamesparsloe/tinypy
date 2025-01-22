@@ -3,12 +3,17 @@ from .tokenizer import Token, TokenKind, tokenize
 from typing import Any
 
 
-class Expr(ABC): ...
+class Expr(ABC):
+    @abstractmethod
+    def accept(self, visitor: "Visitor") -> Any: ...
 
 
 class Literal(Expr):
     def __init__(self, value: object):
         self.value = value
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_literal(self)
 
     def __repr__(self) -> str:
         return f"Literal({self.value})"
@@ -17,6 +22,9 @@ class Literal(Expr):
 class GroupingExpr(Expr):
     def __init__(self, expr: Expr):
         self.expr = expr
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_grouping_expr(self)
 
     def __repr__(self) -> str:
         return f"({self.expr})"
@@ -27,6 +35,9 @@ class BinaryExpr(Expr):
         self.left = left
         self.op = op
         self.right = right
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_binary_expr(self)
 
     def __repr__(self) -> str:
         return f"({self.left} {self.op} {self.right})"
@@ -112,10 +123,54 @@ class Parser:
     def expr(self) -> Expr:
         return self.term()
 
+    def parse(self) -> Expr:
+        return self.expr()
+
 
 def parse(source: str):
     tokens = tokenize(source)
-    print(tokens)
     parser = Parser(tokens)
-    expr = parser.expr()
+    expr = parser.parse()
     return expr
+
+
+class Visitor(ABC):
+    @abstractmethod
+    def visit_literal(self, expr: Literal):
+        pass
+
+    @abstractmethod
+    def visit_grouping_expr(self, expr: GroupingExpr):
+        pass
+
+    @abstractmethod
+    def visit_binary_expr(self, expr: BinaryExpr):
+        pass
+
+
+class Evaluator(Visitor):
+    def evaluate(self, expr: Expr):
+        return expr.accept(self)
+
+    def visit_literal(self, expr: Literal):
+        return expr.value
+
+    def visit_grouping_expr(self, expr: GroupingExpr):
+        return self.evaluate(expr.expr)
+
+    def visit_binary_expr(self, expr: BinaryExpr):
+        left = self.evaluate(expr.left)
+        right = self.evaluate(expr.right)
+
+        kind = expr.op.kind
+
+        if kind == TokenKind.PLUS:
+            return left + right
+        elif kind == TokenKind.MINUS:
+            return left - right
+        elif kind == TokenKind.STAR:
+            return left * right
+        elif kind == TokenKind.SLASH:
+            return left / right
+        else:
+            return None
