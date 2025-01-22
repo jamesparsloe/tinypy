@@ -16,5 +16,8 @@ jobs:
       - name: Install tinypy
         run: uv sync --all-extras --dev
 
-      - name: Run tests
+      - name: Tests
+        run: uv run pytest
+
+      - name: REPL tests
         run: chmod +x test.sh && ./test.sh
