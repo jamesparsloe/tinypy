@@ -1,3 +1,4 @@
+from typing import Any
 from tinypy.tokenizer import TokenKind
 from tinypy.parser import (
     Visitor,
@@ -9,13 +10,15 @@ from tinypy.parser import (
     GroupingExpr,
     ExprStmt,
     PrintStmt,
-    Variable,
-    AssignmentStmt,
+    VarStmt,
     parse,
 )
 
 
 class Interpreter(Visitor):
+    def __init__(self):
+        self.values: dict[str, Any] = {}
+
     def interpret(self, stmts: list[Stmt]):
         for stmt in stmts:
             self.execute(stmt)
@@ -56,14 +59,14 @@ class Interpreter(Visitor):
         value = self.evaluate(stmt.expr)
         print(value)
 
-    def visit_variable(self, expr: Variable):
-        # TODO: variable lookup
-        return None
+    def visit_var_stmt(self, stmt: VarStmt):
+        value = self.evaluate(stmt.expr)
 
-    def visit_assignment_stmt(self, expr: AssignmentStmt):
-        value = self.evaluate(expr.value)
-        # TODO: variable storage logic etc
-        return None
+        name = stmt.name
+
+        self.values[name.text] = value
+
+        print(self.values)
 
 
 def interpret(source: str):

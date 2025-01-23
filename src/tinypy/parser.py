@@ -25,14 +25,6 @@ class Literal(Expr):
         return f"Literal({self.value})"
 
 
-class Variable(Expr):
-    def __init__(self, name: str):
-        self.name = name
-
-    def accept(self, visitor: "Visitor") -> Any:
-        return visitor.visit_variable(self)
-
-
 class GroupingExpr(Expr):
     def __init__(self, expr: Node):
         self.expr = expr
@@ -79,17 +71,17 @@ class PrintStmt(Stmt):
         return f"print({self.expr})"
 
 
-class AssignmentStmt(Stmt):
-    def __init__(self, name: Token, type_annotation: Token, value: Node):
+class VarStmt(Stmt):
+    def __init__(self, name: Token, type_annotation: Token, expr: Expr):
         self.name = name
         self.type_annotation = type_annotation
-        self.value = value
+        self.expr = expr
 
     def accept(self, visitor: "Visitor") -> Any:
-        return visitor.visit_assignment_stmt(self)
+        return visitor.visit_var_stmt(self)
 
     def __repr__(self) -> str:
-        return f"{self.name}: {self.type_annotation} = {self.value}"
+        return f"{self.name}: {self.type_annotation} = {self.expr}"
 
 
 class Visitor:
@@ -102,16 +94,13 @@ class Visitor:
     def visit_binary_expr(self, expr: BinaryExpr):
         pass
 
-    def visit_variable(self, expr: Variable):
-        pass
-
     def visit_expr_stmt(self, stmt: ExprStmt):
         pass
 
-    def visit_print_stmt(self, stmt: PrintStmt):
+    def visit_var_stmt(self, stmt: VarStmt):
         pass
 
-    def visit_assignment_stmt(self, stmt: AssignmentStmt):
+    def visit_print_stmt(self, stmt: PrintStmt):
         pass
 
 
@@ -120,19 +109,17 @@ class Parser:
         self.position = 0
         self.tokens = tokens
 
+    def peek(self) -> Token:
+        return self.tokens[self.position]
+
+    def is_done(self):
+        return self.peek().kind == TokenKind.EOF
+
     def check(self, kind: TokenKind):
         if self.is_done():
             return False
         else:
             return self.peek().kind == kind
-
-    def match(self, *kinds: TokenKind):
-        for kind in kinds:
-            if self.check(kind):
-                self.advance()
-                return True
-
-        return False
 
     def previous(self):
         return self.tokens[self.position - 1]
@@ -142,25 +129,19 @@ class Parser:
             self.position += 1
         return self.previous()
 
-    def peek(self) -> Token:
-        return self.tokens[self.position]
+    def match(self, *kinds: TokenKind):
+        for kind in kinds:
+            if self.check(kind):
+                self.advance()
+                return True
 
-    def is_done(self):
-        return self.peek().kind == TokenKind.EOF
+        return False
 
-    # NOTE: other compilers/interpreters can use "atomic" or "factor" for this
-    def primary(self):
-        if self.match(TokenKind.IDENTIFIER):
-            return Variable(self.previous())
-        elif self.match(TokenKind.LEFT_PAREN):
-            expr = self.expression()
-
-            if not self.match(TokenKind.RIGHT_PAREN):
-                raise SyntaxError("Expected ')' after expression")
-
-            return GroupingExpr(expr)
+    def consume(self, kind: TokenKind):
+        if self.check(kind):
+            return self.advance()
         else:
-            return self.number()
+            raise SyntaxError(f"Expected {kind} got {self.peek()}")
 
     def number(self):
         expr = None
@@ -171,6 +152,20 @@ class Parser:
 
         return expr
 
+    # NOTE: other compilers/interpreters can use "atomic" or "factor" for this
+    def primary(self):
+        # if self.match(TokenKind.IDENTIFIER):
+        #     return Variable(self.previous())
+        if self.match(TokenKind.LEFT_PAREN):
+            expr = self.expr()
+
+            if not self.match(TokenKind.RIGHT_PAREN):
+                raise SyntaxError("Expected ')' after expression")
+
+            return GroupingExpr(expr)
+        else:
+            return self.number()
+
     def factor(self):
         expr = self.primary()
 
@@ -178,8 +173,6 @@ class Parser:
             op = self.previous()
             right = self.factor()
             expr = BinaryExpr(expr, op, right)
-
-        assert expr is not None
 
         return expr
 
@@ -195,32 +188,14 @@ class Parser:
 
         return expr
 
-    # TODO: I don't really like the naming of these things at all
-    # def assignment(self) -> Node:
-    #     if self.match(TokenKind.IDENTIFIER):
-    #         name = self.previous()
-
-    #         if not self.match(TokenKind.COLON):
-    #             raise SyntaxError("Expected ':' after variable name")
-
-    #         if not self.match(TokenKind.INT, TokenKind.FLOAT):  # For type annotation
-    #             raise SyntaxError("Expected type annotation")
-
-    #         type_annotation = self.previous()
-
-    #         if not self.match(TokenKind.EQUAL):
-    #             raise SyntaxError("Expected '=' after type annotation")
-
-    #         value = self.expression()
-    #         return AssignmentStmt(name, type_annotation, value)
-    #     else:
-    #         return self.term()
-
-    def expression(self) -> Expr:
+    def expr(self) -> Expr:
         return self.term()
 
-    def print_statement(self):
-        value = self.expression()
+    def print_stmt(self):
+        if not self.match(TokenKind.LEFT_PAREN):
+            raise SyntaxError("Expected '(' after print")
+
+        value = self.expr()
 
         if not self.match(TokenKind.RIGHT_PAREN):
             raise SyntaxError("Expected ')'")
@@ -230,14 +205,35 @@ class Parser:
 
         return PrintStmt(value)
 
-    def statement(self):
-        if self.match(TokenKind.PRINT):
-            if not self.match(TokenKind.LEFT_PAREN):
-                raise SyntaxError("Expected '(' after print")
+    def var_stmt(self):
+        if self.match(TokenKind.IDENTIFIER):
+            identifier = self.previous()
 
-            return self.print_statement()
+            if not self.match(TokenKind.COLON):
+                raise SyntaxError("Expected ':' after variable name")
+
+            # TODO: str etc
+            if not self.match(TokenKind.INT, TokenKind.FLOAT):
+                raise SyntaxError("Expected type annotation")
+
+            type_annotation = self.previous()
+
+            if not self.match(TokenKind.EQUAL):
+                raise SyntaxError("Expected '=' after type annotation")
+
+            expr = self.expr()
+
+            _ = self.consume(TokenKind.NEWLINE)
+
+            return VarStmt(identifier, type_annotation, expr)
         else:
-            expr = self.expression()
+            return self.stmt()
+
+    def stmt(self):
+        if self.match(TokenKind.PRINT):
+            return self.print_stmt()
+        else:
+            expr = self.expr()
 
             if not self.match(TokenKind.NEWLINE):
                 raise SyntaxError("Expected '\n' after expression statement")
@@ -248,7 +244,7 @@ class Parser:
         stmts = []
 
         while not self.is_done():
-            stmts.append(self.statement())
+            stmts.append(self.var_stmt())
 
         return stmts
 
@@ -291,7 +287,7 @@ class Evaluator(Visitor):
 def evaluate(source: str):
     tokens = tokenize(source)
     parser = Parser(tokens)
-    expr = parser.expression()
+    expr = parser.expr()
     evaluator = Evaluator()
     result = evaluator.evaluate(expr)
     return result
