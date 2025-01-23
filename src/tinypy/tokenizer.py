@@ -23,6 +23,7 @@ class TokenKind(StrEnum):
 
     IF = "if"
     ELSE = "else"
+    PRINT = "print"
 
     DEF = "def"
     RETURN = "return"
@@ -34,6 +35,7 @@ class TokenKind(StrEnum):
 KEYWORDS = {
     "int": TokenKind.INT,
     "float": TokenKind.FLOAT,
+    "print": TokenKind.PRINT,
     "if": TokenKind.IF,
     "else": TokenKind.ELSE,
     "def": TokenKind.DEF,
@@ -60,6 +62,9 @@ INDENT_SPACES = 4
 
 class Tokenizer:
     def __init__(self, source: str):
+        # TODO: is this okay?
+        if source[-1] != "\n":
+            source += "\n"
         self.source = source
         self.position = 0
         self.start = 0
@@ -68,13 +73,13 @@ class Tokenizer:
         self.character = self.source[self.position]
         self.indent_stack: list[int] = [0]
 
-    # NOTE(james): also seen this in various places as `consume`
+    # NOTE: also seen this in various places as `consume`
     def advance(self):
         c = self.source[self.position]
         self.position += 1
         return c
 
-    # NOTE(james): peek **doesn't** consume the character
+    # NOTE: peek **doesn't** consume the character
     def peek(self):
         if self.is_done():
             return "\0"
@@ -133,7 +138,7 @@ class Tokenizer:
                     self.line += 1
                     continue
 
-                # FIXME(james)
+                # HACK
                 self.start = self.position
 
             c = self.advance()
@@ -153,7 +158,7 @@ class Tokenizer:
             elif c == "<":
                 self.add_token(TokenKind.LESS_THAN)
             elif c == "\n":
-                # TODO(james): line number for new line??
+                # TODO: line number for new line??
                 self.add_token(TokenKind.NEWLINE)
                 self.line += 1
             elif c == " ":
@@ -193,11 +198,11 @@ class Tokenizer:
                 while self.peek().isalpha() or self.peek() == "_":
                     self.advance()
                 text = self.source[self.start : self.position]
-                # NOTE(james): we can also produce the int/float type annotations here - they just will not be associated with a value unlike the literals
+                # NOTE: we can also produce the int/float type annotations here - they just will not be associated with a value unlike the literals
                 kind = KEYWORDS.get(text, TokenKind.IDENTIFIER)
                 self.add_token(kind, value=text)
             else:
-                # TODO(james): proper error handling
+                # TODO: proper error handling
                 print(f"line {self.line} {self.tokens}")
                 raise Exception(f"Did not handle '{c}' in tokenize")
 

@@ -1,11 +1,17 @@
 from abc import ABC, abstractmethod
-from .tokenizer import Token, TokenKind, tokenize
 from typing import Any
+from tinypy.tokenizer import Token, TokenKind, tokenize
 
 
-class Expr(ABC):
+class Node(ABC):
     @abstractmethod
     def accept(self, visitor: "Visitor") -> Any: ...
+
+
+class Expr(Node): ...
+
+
+class Stmt(Node): ...
 
 
 class Literal(Expr):
@@ -19,8 +25,16 @@ class Literal(Expr):
         return f"Literal({self.value})"
 
 
+class Variable(Expr):
+    def __init__(self, name: str):
+        self.name = name
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_variable(self)
+
+
 class GroupingExpr(Expr):
-    def __init__(self, expr: Expr):
+    def __init__(self, expr: Node):
         self.expr = expr
 
     def accept(self, visitor: "Visitor") -> Any:
@@ -31,7 +45,7 @@ class GroupingExpr(Expr):
 
 
 class BinaryExpr(Expr):
-    def __init__(self, left: Expr, op: Token, right: Expr):
+    def __init__(self, left: Node, op: Token, right: Node):
         self.left = left
         self.op = op
         self.right = right
@@ -41,6 +55,64 @@ class BinaryExpr(Expr):
 
     def __repr__(self) -> str:
         return f"({self.left} {self.op} {self.right})"
+
+
+class ExprStmt(Stmt):
+    def __init__(self, expr: Expr):
+        self.expr = expr
+
+    def accept(self, visitor: "Visitor"):
+        return visitor.visit_expr_stmt(self)
+
+    def __repr__(self) -> str:
+        return self.expr.__repr__()
+
+
+class PrintStmt(Stmt):
+    def __init__(self, expr: Expr):
+        self.expr = expr
+
+    def accept(self, visitor: "Visitor"):
+        return visitor.visit_print_stmt(self)
+
+    def __repr__(self) -> str:
+        return f"print({self.expr})"
+
+
+class AssignmentStmt(Stmt):
+    def __init__(self, name: Token, type_annotation: Token, value: Node):
+        self.name = name
+        self.type_annotation = type_annotation
+        self.value = value
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_assignment_stmt(self)
+
+    def __repr__(self) -> str:
+        return f"{self.name}: {self.type_annotation} = {self.value}"
+
+
+class Visitor:
+    def visit_literal(self, expr: Literal):
+        pass
+
+    def visit_grouping_expr(self, expr: GroupingExpr):
+        pass
+
+    def visit_binary_expr(self, expr: BinaryExpr):
+        pass
+
+    def visit_variable(self, expr: Variable):
+        pass
+
+    def visit_expr_stmt(self, stmt: ExprStmt):
+        pass
+
+    def visit_print_stmt(self, stmt: PrintStmt):
+        pass
+
+    def visit_assignment_stmt(self, stmt: AssignmentStmt):
+        pass
 
 
 class Parser:
@@ -76,9 +148,12 @@ class Parser:
     def is_done(self):
         return self.peek().kind == TokenKind.EOF
 
+    # NOTE: other compilers/interpreters can use "atomic" or "factor" for this
     def primary(self):
-        if self.match(TokenKind.LEFT_PAREN):
-            expr = self.expr()
+        if self.match(TokenKind.IDENTIFIER):
+            return Variable(self.previous())
+        elif self.match(TokenKind.LEFT_PAREN):
+            expr = self.expression()
 
             if not self.match(TokenKind.RIGHT_PAREN):
                 raise SyntaxError("Expected ')' after expression")
@@ -120,32 +195,69 @@ class Parser:
 
         return expr
 
-    def expr(self) -> Expr:
+    # TODO: I don't really like the naming of these things at all
+    # def assignment(self) -> Node:
+    #     if self.match(TokenKind.IDENTIFIER):
+    #         name = self.previous()
+
+    #         if not self.match(TokenKind.COLON):
+    #             raise SyntaxError("Expected ':' after variable name")
+
+    #         if not self.match(TokenKind.INT, TokenKind.FLOAT):  # For type annotation
+    #             raise SyntaxError("Expected type annotation")
+
+    #         type_annotation = self.previous()
+
+    #         if not self.match(TokenKind.EQUAL):
+    #             raise SyntaxError("Expected '=' after type annotation")
+
+    #         value = self.expression()
+    #         return AssignmentStmt(name, type_annotation, value)
+    #     else:
+    #         return self.term()
+
+    def expression(self) -> Expr:
         return self.term()
 
-    def parse(self) -> Expr:
-        return self.expr()
+    def print_statement(self):
+        value = self.expression()
+
+        if not self.match(TokenKind.RIGHT_PAREN):
+            raise SyntaxError("Expected ')'")
+
+        if not self.match(TokenKind.NEWLINE):
+            raise SyntaxError("Expected '\n' after print statment")
+
+        return PrintStmt(value)
+
+    def statement(self):
+        if self.match(TokenKind.PRINT):
+            if not self.match(TokenKind.LEFT_PAREN):
+                raise SyntaxError("Expected '(' after print")
+
+            return self.print_statement()
+        else:
+            expr = self.expression()
+
+            if not self.match(TokenKind.NEWLINE):
+                raise SyntaxError("Expected '\n' after expression statement")
+
+            return ExprStmt(expr)
+
+    def parse(self) -> list[Stmt]:
+        stmts = []
+
+        while not self.is_done():
+            stmts.append(self.statement())
+
+        return stmts
 
 
 def parse(source: str):
     tokens = tokenize(source)
     parser = Parser(tokens)
-    expr = parser.parse()
-    return expr
-
-
-class Visitor(ABC):
-    @abstractmethod
-    def visit_literal(self, expr: Literal):
-        pass
-
-    @abstractmethod
-    def visit_grouping_expr(self, expr: GroupingExpr):
-        pass
-
-    @abstractmethod
-    def visit_binary_expr(self, expr: BinaryExpr):
-        pass
+    stmts = parser.parse()
+    return stmts
 
 
 class Evaluator(Visitor):
@@ -174,3 +286,12 @@ class Evaluator(Visitor):
             return left / right
         else:
             return None
+
+
+def evaluate(source: str):
+    tokens = tokenize(source)
+    parser = Parser(tokens)
+    expr = parser.expression()
+    evaluator = Evaluator()
+    result = evaluator.evaluate(expr)
+    return result

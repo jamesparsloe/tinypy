@@ -1,24 +1,14 @@
 import sys
-from tinypy.parser import parse, Evaluator
+from tinypy.parser import parse
+from tinypy.interpreter import interpret
 
 
 __version__ = "0.1.0"
 USAGE = "usage: tinypy or tinypy script.py"
 
 
-def evaluate(source: str):
-    expr = parse(source)
-
-    evaluator = Evaluator()
-    value = evaluator.evaluate(expr)
-
-    return value
-
-
 def run(source: str):
-    value = evaluate(source)
-
-    print(value)
+    interpret(source)
 
 
 def run_repl():
@@ -42,7 +32,7 @@ def run_script(file: str):
 def main() -> None:
     args = sys.argv[1:]
 
-    # TODO(james) correct error codes
+    # TODO correct error codes
     if len(args) == 0:
         run_repl()
     elif len(args) == 1:
