@@ -1,6 +1,7 @@
 from typing import Any
 from tinypy.tokenizer import TokenKind
 from tinypy.parser import (
+    Var,
     Visitor,
     Stmt,
     Expr,
@@ -66,7 +67,13 @@ class Interpreter(Visitor):
 
         self.values[name.text] = value
 
-        print(self.values)
+    def visit_var(self, expr: Var):
+        value = self.values.get(expr.name.value)
+
+        if value is None:
+            raise Exception(f"Variable {expr.name.value} is not defined")
+
+        return value
 
 
 def interpret(source: str):

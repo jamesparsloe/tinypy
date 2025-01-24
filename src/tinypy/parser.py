@@ -84,6 +84,17 @@ class VarStmt(Stmt):
         return f"{self.name}: {self.type_annotation} = {self.expr}"
 
 
+class Var(Expr):
+    def __init__(self, name: Token):
+        self.name = name
+
+    def accept(self, visitor: "Visitor"):
+        return visitor.visit_var(self)
+
+    def __repr__(self) -> str:
+        return f"{self.name.value}"
+
+
 class Visitor:
     def visit_literal(self, expr: Literal):
         pass
@@ -102,6 +113,9 @@ class Visitor:
 
     def visit_print_stmt(self, stmt: PrintStmt):
         pass
+
+    def visit_var(self, expr: Var):
+        raise NotImplementedError()
 
 
 class Parser:
@@ -154,9 +168,9 @@ class Parser:
 
     # NOTE: other compilers/interpreters can use "atomic" or "factor" for this
     def primary(self):
-        # if self.match(TokenKind.IDENTIFIER):
-        #     return Variable(self.previous())
-        if self.match(TokenKind.LEFT_PAREN):
+        if self.match(TokenKind.IDENTIFIER):
+            return Var(self.previous())
+        elif self.match(TokenKind.LEFT_PAREN):
             expr = self.expr()
 
             if not self.match(TokenKind.RIGHT_PAREN):
