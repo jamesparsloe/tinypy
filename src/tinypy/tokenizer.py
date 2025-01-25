@@ -157,6 +157,10 @@ class Tokenizer:
                 self.add_token(TokenKind.SLASH)
             elif c == "<":
                 self.add_token(TokenKind.LESS_THAN)
+            elif c == "#":
+                # swallow comments for now
+                while self.peek() != "\n" and not self.is_done():
+                    self.advance()
             elif c == "\n":
                 # TODO: line number for new line??
                 self.add_token(TokenKind.NEWLINE)

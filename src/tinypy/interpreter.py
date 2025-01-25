@@ -13,6 +13,7 @@ from tinypy.parser import (
     PrintStmt,
     VarStmt,
     parse,
+    AssignStmt,
 )
 
 
@@ -61,11 +62,13 @@ class Interpreter(Visitor):
         print(value)
 
     def visit_var_stmt(self, stmt: VarStmt):
-        value = self.evaluate(stmt.expr)
+        name = stmt.name.text
 
-        name = stmt.name
-
-        self.values[name.text] = value
+        if name in self.values:
+            raise Exception(f"{name} has already been defined")
+        else:
+            value = self.evaluate(stmt.expr)
+            self.values[name] = value
 
     def visit_var(self, expr: Var):
         value = self.values.get(expr.name.value)
@@ -74,6 +77,18 @@ class Interpreter(Visitor):
             raise Exception(f"Variable {expr.name.value} is not defined")
 
         return value
+
+    # TODO: there's no type checking
+    def visit_assign_stmt(self, stmt: AssignStmt):
+        name = stmt.name.value
+        curr_value = self.values.get(name)
+
+        if curr_value is None:
+            raise Exception(f"Variable {stmt.name.value} is not defined")
+
+        value = self.evaluate(stmt.value)
+
+        self.values[name] = value
 
 
 def interpret(source: str):

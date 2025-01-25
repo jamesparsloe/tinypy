@@ -95,26 +95,42 @@ class Var(Expr):
         return f"{self.name.value}"
 
 
+class AssignStmt(Stmt):
+    def __init__(self, name: Token, value: Expr) -> None:
+        self.name = name
+        self.value = value
+
+    def accept(self, visitor: "Visitor"):
+        return visitor.visit_assign_stmt(self)
+
+    def __repr__(self) -> str:
+        return f"{self.name.value} = {self.value}"
+
+
+# NOTE: making it optional to implement all of these
 class Visitor:
     def visit_literal(self, expr: Literal):
-        pass
+        raise NotImplementedError()
 
     def visit_grouping_expr(self, expr: GroupingExpr):
-        pass
+        raise NotImplementedError()
 
     def visit_binary_expr(self, expr: BinaryExpr):
-        pass
+        raise NotImplementedError()
 
     def visit_expr_stmt(self, stmt: ExprStmt):
-        pass
+        raise NotImplementedError()
 
     def visit_var_stmt(self, stmt: VarStmt):
-        pass
+        raise NotImplementedError()
 
     def visit_print_stmt(self, stmt: PrintStmt):
-        pass
+        raise NotImplementedError()
 
     def visit_var(self, expr: Var):
+        raise NotImplementedError()
+
+    def visit_assign_stmt(self, stmt: AssignStmt):
         raise NotImplementedError()
 
 
@@ -221,25 +237,33 @@ class Parser:
 
     def var_stmt(self):
         if self.match(TokenKind.IDENTIFIER):
-            identifier = self.previous()
+            if self.check(TokenKind.EQUAL):
+                name = self.previous()
+                _ = self.advance()
+                value = self.expr()
 
-            if not self.match(TokenKind.COLON):
-                raise SyntaxError("Expected ':' after variable name")
+                _ = self.consume(TokenKind.NEWLINE)
+                return AssignStmt(name, value)
+            else:
+                name = self.previous()
 
-            # TODO: str etc
-            if not self.match(TokenKind.INT, TokenKind.FLOAT):
-                raise SyntaxError("Expected type annotation")
+                if not self.match(TokenKind.COLON):
+                    raise SyntaxError("Expected ':' after variable name")
 
-            type_annotation = self.previous()
+                # TODO: str etc
+                if not self.match(TokenKind.INT, TokenKind.FLOAT):
+                    raise SyntaxError("Expected type annotation")
 
-            if not self.match(TokenKind.EQUAL):
-                raise SyntaxError("Expected '=' after type annotation")
+                type_annotation = self.previous()
 
-            expr = self.expr()
+                if not self.match(TokenKind.EQUAL):
+                    raise SyntaxError("Expected '=' after type annotation")
 
-            _ = self.consume(TokenKind.NEWLINE)
+                expr = self.expr()
 
-            return VarStmt(identifier, type_annotation, expr)
+                _ = self.consume(TokenKind.NEWLINE)
+
+                return VarStmt(name, type_annotation, expr)
         else:
             return self.stmt()
 
