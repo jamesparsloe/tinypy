@@ -193,6 +193,9 @@ class Parser:
                 raise SyntaxError("Expected ')' after expression")
 
             return GroupingExpr(expr)
+        elif self.match(TokenKind.STR):
+            expr = Literal(self.previous().value)
+            return expr
         else:
             return self.number()
 
@@ -251,7 +254,7 @@ class Parser:
                     raise SyntaxError("Expected ':' after variable name")
 
                 # TODO: str etc
-                if not self.match(TokenKind.INT, TokenKind.FLOAT):
+                if not self.match(TokenKind.INT, TokenKind.FLOAT, TokenKind.STR):
                     raise SyntaxError("Expected type annotation")
 
                 type_annotation = self.previous()

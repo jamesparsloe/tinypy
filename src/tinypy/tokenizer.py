@@ -20,9 +20,12 @@ class TokenKind(StrEnum):
 
     INT = "int"
     FLOAT = "float"
+    STR = "str"
 
     IF = "if"
+    ELIF = "elif"
     ELSE = "else"
+
     PRINT = "print"
 
     DEF = "def"
@@ -35,6 +38,7 @@ class TokenKind(StrEnum):
 KEYWORDS = {
     "int": TokenKind.INT,
     "float": TokenKind.FLOAT,
+    "str": TokenKind.STR,
     "print": TokenKind.PRINT,
     "if": TokenKind.IF,
     "else": TokenKind.ELSE,
@@ -174,6 +178,12 @@ class Tokenizer:
                     self.add_token(TokenKind.MINUS)
             elif c == "=":
                 self.add_token(TokenKind.EQUAL)
+            elif c == '"':
+                while self.peek() != '"':
+                    self.advance()
+                self.advance()
+                text = self.source[self.start + 1 : self.position - 1]
+                self.add_token(TokenKind.STR, value=text)
             elif c.isdigit():
                 while self.peek().isdigit():
                     self.advance()
