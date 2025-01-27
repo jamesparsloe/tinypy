@@ -6,7 +6,7 @@ class TokenKind(StrEnum):
     LEFT_PAREN = "("
     RIGHT_PAREN = ")"
     COLON = ":"
-    EQUAL = "="
+    EQUALS = "="
     PLUS = "+"
     STAR = "*"
     SLASH = "/"
@@ -33,8 +33,8 @@ class TokenKind(StrEnum):
     IDENTIFIER = "identifier"
 
     BOOL = "bool"
-    TRUE = "True"
-    FALSE = "False"
+    # TRUE = "True"
+    # FALSE = "False"
 
     EOF = "eof"
 
@@ -57,7 +57,7 @@ KEYWORDS = {
 @dataclass
 class Token:
     kind: TokenKind
-    line: int
+    line: int = -1
     text: str = ""
     value: object | None = None
 
@@ -189,7 +189,7 @@ class Tokenizer:
                 else:
                     self.add_token(TokenKind.MINUS)
             elif c == "=":
-                self.add_token(TokenKind.EQUAL)
+                self.add_token(TokenKind.EQUALS)
             elif c == '"':
                 while self.peek() != '"':
                     self.advance()

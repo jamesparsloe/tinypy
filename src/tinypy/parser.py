@@ -256,7 +256,7 @@ class Parser:
 
     def var_stmt(self):
         if self.match(TokenKind.IDENTIFIER):
-            if self.check(TokenKind.EQUAL):
+            if self.check(TokenKind.EQUALS):
                 name = self.previous()
                 _ = self.advance()
                 value = self.expr()
@@ -277,7 +277,7 @@ class Parser:
 
                 type_annotation = self.previous()
 
-                if not self.match(TokenKind.EQUAL):
+                if not self.match(TokenKind.EQUALS):
                     raise SyntaxError("Expected '=' after type annotation")
 
                 expr = self.expr()
