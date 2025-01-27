@@ -1,6 +1,7 @@
 from typing import Any
 from tinypy.tokenizer import TokenKind
 from tinypy.parser import (
+    IfStmt,
     Var,
     Visitor,
     Stmt,
@@ -42,6 +43,11 @@ class Interpreter(Visitor):
         right = self.evaluate(expr.right)
 
         kind = expr.op.kind
+
+        # FIXME: must be a better way
+        if isinstance(left, str) or isinstance(right, str):
+            left = str(left)
+            right = str(right)
 
         if kind == TokenKind.PLUS:
             return left + right
@@ -90,8 +96,15 @@ class Interpreter(Visitor):
 
         self.values[name] = value
 
+    def visit_if_stmt(self, stmt: IfStmt):
+        if self.evaluate(stmt.cond):
+            self.execute(stmt.if_branch)
+        elif stmt.else_branch is not None:
+            self.execute(stmt.else_branch)
+
 
 def interpret(source: str):
     stmts = parse(source)
+    print(stmts)
     interpreter = Interpreter()
     interpreter.interpret(stmts)

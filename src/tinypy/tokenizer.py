@@ -32,6 +32,10 @@ class TokenKind(StrEnum):
     RETURN = "return"
     IDENTIFIER = "identifier"
 
+    BOOL = "bool"
+    TRUE = "True"
+    FALSE = "False"
+
     EOF = "eof"
 
 
@@ -44,6 +48,9 @@ KEYWORDS = {
     "else": TokenKind.ELSE,
     "def": TokenKind.DEF,
     "return": TokenKind.RETURN,
+    "bool": TokenKind.BOOL,
+    "True": TokenKind.BOOL,
+    "False": TokenKind.BOOL,
 }
 
 
@@ -116,6 +123,8 @@ class Tokenizer:
 
         current_level = self.indent_stack[-1]
 
+        # print(f"{self.line=} {indent_level=} {current_level=}")
+
         if indent_level > current_level:
             self.indent_stack.append(indent_level)
             self.add_token(TokenKind.INDENT)
@@ -131,7 +140,7 @@ class Tokenizer:
         self.tokens.append(token)
 
     def tokenize(self) -> list[Token]:
-        while not self.is_done():
+        while True:
             self.start = self.position
 
             if len(self.tokens) == 0 or self.tokens[-1].kind == TokenKind.NEWLINE:
@@ -144,6 +153,9 @@ class Tokenizer:
 
                 # HACK
                 self.start = self.position
+
+            if self.is_done():
+                break
 
             c = self.advance()
 
@@ -214,7 +226,13 @@ class Tokenizer:
                 text = self.source[self.start : self.position]
                 # NOTE: we can also produce the int/float type annotations here - they just will not be associated with a value unlike the literals
                 kind = KEYWORDS.get(text, TokenKind.IDENTIFIER)
-                self.add_token(kind, value=text)
+
+                if text in ("True", "False"):
+                    value = text == "True"
+                else:
+                    value = text
+
+                self.add_token(kind, value=value)
             else:
                 # TODO: proper error handling
                 print(f"line {self.line} {self.tokens}")

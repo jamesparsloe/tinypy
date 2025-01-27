@@ -32,3 +32,7 @@ chmod +x test.sh
 - [ ] Functions
 - [ ] Convert print statements to functions
 - [ ] Type checking??
+
+## BUGS
+
+- [ ] I've messed up newlines, dedents, and all that. Scripts are currently not robust to whitespace...

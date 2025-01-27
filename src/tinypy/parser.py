@@ -84,6 +84,16 @@ class VarStmt(Stmt):
         return f"{self.name}: {self.type_annotation} = {self.expr}"
 
 
+class IfStmt(Stmt):
+    def __init__(self, cond: Expr, if_branch: Stmt, else_branch: Stmt | None):
+        self.cond = cond
+        self.if_branch = if_branch
+        self.else_branch = else_branch
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_if_stmt(self)
+
+
 class Var(Expr):
     def __init__(self, name: Token):
         self.name = name
@@ -131,6 +141,9 @@ class Visitor:
         raise NotImplementedError()
 
     def visit_assign_stmt(self, stmt: AssignStmt):
+        raise NotImplementedError()
+
+    def visit_if_stmt(self, stmt: IfStmt):
         raise NotImplementedError()
 
 
@@ -196,6 +209,9 @@ class Parser:
         elif self.match(TokenKind.STR):
             expr = Literal(self.previous().value)
             return expr
+        elif self.match(TokenKind.BOOL):
+            expr = Literal(self.previous().value)
+            return expr
         else:
             return self.number()
 
@@ -254,7 +270,9 @@ class Parser:
                     raise SyntaxError("Expected ':' after variable name")
 
                 # TODO: str etc
-                if not self.match(TokenKind.INT, TokenKind.FLOAT, TokenKind.STR):
+                if not self.match(
+                    TokenKind.INT, TokenKind.FLOAT, TokenKind.STR, TokenKind.BOOL
+                ):
                     raise SyntaxError("Expected type annotation")
 
                 type_annotation = self.previous()
@@ -270,9 +288,28 @@ class Parser:
         else:
             return self.stmt()
 
+    def if_stmt(self):
+        cond = self.expr()
+        _ = self.consume(TokenKind.COLON)
+        _ = self.consume(TokenKind.NEWLINE)
+        _ = self.consume(TokenKind.INDENT)
+        if_branch = self.stmt()
+        _ = self.consume(TokenKind.DEDENT)  # don't forget dedents!
+        else_branch = None
+        if self.match(TokenKind.ELSE):
+            _ = self.consume(TokenKind.COLON)
+            _ = self.consume(TokenKind.NEWLINE)
+            _ = self.consume(TokenKind.INDENT)
+            else_branch = self.stmt()
+            _ = self.consume(TokenKind.DEDENT)
+
+        return IfStmt(cond, if_branch, else_branch)
+
     def stmt(self):
         if self.match(TokenKind.PRINT):
             return self.print_stmt()
+        elif self.match(TokenKind.IF):
+            return self.if_stmt()
         else:
             expr = self.expr()
 
@@ -292,6 +329,7 @@ class Parser:
 
 def parse(source: str):
     tokens = tokenize(source)
+    print(tokens)
     parser = Parser(tokens)
     stmts = parser.parse()
     return stmts
