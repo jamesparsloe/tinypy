@@ -15,6 +15,8 @@ from tinypy.parser import (
     VarStmt,
     parse,
     AssignStmt,
+    BlockStmt,
+    CommentStmt,
 )
 
 
@@ -102,9 +104,15 @@ class Interpreter(Visitor):
         elif stmt.else_branch is not None:
             self.execute(stmt.else_branch)
 
+    def visit_block_stmt(self, stmt: BlockStmt):
+        for stmt in stmt.stmts:
+            self.execute(stmt)
+
+    def visit_comment_stmt(self, stmt: CommentStmt):
+        pass
+
 
 def interpret(source: str):
     stmts = parse(source)
-    print(stmts)
     interpreter = Interpreter()
     interpreter.interpret(stmts)

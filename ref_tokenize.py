@@ -1,5 +1,8 @@
-import tokenize
+"""Actual Python tokenizer to compare against."""
 
-with open("examples/fibonacci.py", "rb") as f:
+import tokenize
+import sys
+
+with open(sys.argv[1], "rb") as f:
     for token in tokenize.tokenize(f.readline):
         print(token)

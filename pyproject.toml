@@ -11,6 +11,7 @@ dependencies = []
 
 [project.scripts]
 tinypy = "tinypy:main"
+tokenize = "tinypy.tokenizer:main"
 
 [project.optional-dependencies]
 dev = [

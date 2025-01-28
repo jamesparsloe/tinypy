@@ -93,6 +93,28 @@ class IfStmt(Stmt):
     def accept(self, visitor: "Visitor") -> Any:
         return visitor.visit_if_stmt(self)
 
+    def __repr__(self):
+        return f"if {self.cond}: {self.if_branch} else: {self.else_branch}"
+
+
+class BlockStmt(Stmt):
+    def __init__(self, stmts: list[Stmt]):
+        self.stmts = stmts
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_block_stmt(self)
+
+    def __repr__(self) -> str:
+        return f"BlockStmt({self.stmts})"
+
+
+class CommentStmt(Stmt):
+    def __init__(self, comment: Token):
+        self.comment = comment
+
+    def accept(self, visitor: "Visitor"):
+        return visitor.visit_comment_stmt(self)
+
 
 class Var(Expr):
     def __init__(self, name: Token):
@@ -146,6 +168,12 @@ class Visitor:
     def visit_if_stmt(self, stmt: IfStmt):
         raise NotImplementedError()
 
+    def visit_block_stmt(self, stmt: BlockStmt):
+        raise NotImplementedError()
+
+    def visit_comment_stmt(self, stmt: CommentStmt):
+        raise NotImplementedError()
+
 
 class Parser:
     def __init__(self, tokens: list[Token]):
@@ -184,7 +212,11 @@ class Parser:
         if self.check(kind):
             return self.advance()
         else:
-            raise SyntaxError(f"Expected {kind} got {self.peek()}")
+            raise SyntaxError(f"Expected '{kind}', but got '{self.peek()}' instead")
+
+    def consume_empty_lines(self):
+        while self.match(TokenKind.NEWLINE):
+            ...
 
     def number(self):
         expr = None
@@ -250,7 +282,7 @@ class Parser:
             raise SyntaxError("Expected ')'")
 
         if not self.match(TokenKind.NEWLINE):
-            raise SyntaxError("Expected '\n' after print statment")
+            raise SyntaxError("Expected newline after print statment")
 
         return PrintStmt(value)
 
@@ -262,14 +294,13 @@ class Parser:
                 value = self.expr()
 
                 _ = self.consume(TokenKind.NEWLINE)
+
                 return AssignStmt(name, value)
-            else:
+            elif self.check(TokenKind.COLON):
                 name = self.previous()
 
-                if not self.match(TokenKind.COLON):
-                    raise SyntaxError("Expected ':' after variable name")
+                _ = self.advance()
 
-                # TODO: str etc
                 if not self.match(
                     TokenKind.INT, TokenKind.FLOAT, TokenKind.STR, TokenKind.BOOL
                 ):
@@ -285,6 +316,8 @@ class Parser:
                 _ = self.consume(TokenKind.NEWLINE)
 
                 return VarStmt(name, type_annotation, expr)
+            else:
+                return self.stmt()
         else:
             return self.stmt()
 
@@ -292,44 +325,65 @@ class Parser:
         cond = self.expr()
         _ = self.consume(TokenKind.COLON)
         _ = self.consume(TokenKind.NEWLINE)
-        _ = self.consume(TokenKind.INDENT)
-        if_branch = self.stmt()
-        _ = self.consume(TokenKind.DEDENT)  # don't forget dedents!
+
+        if_branch = self.block_stmt()
+
         else_branch = None
         if self.match(TokenKind.ELSE):
             _ = self.consume(TokenKind.COLON)
             _ = self.consume(TokenKind.NEWLINE)
-            _ = self.consume(TokenKind.INDENT)
-            else_branch = self.stmt()
-            _ = self.consume(TokenKind.DEDENT)
+            else_branch = self.block_stmt()
 
         return IfStmt(cond, if_branch, else_branch)
+
+    def expr_stmt(self):
+        expr = self.expr()
+        _ = self.consume(TokenKind.NEWLINE)
+        return ExprStmt(expr)
+
+    def block_stmt(self):
+        self.consume_empty_lines()
+
+        _ = self.consume(TokenKind.INDENT)
+
+        stmts = []
+
+        while not self.check(TokenKind.DEDENT):
+            stmts.append(self.var_stmt())
+            self.consume_empty_lines()
+
+        _ = self.consume(TokenKind.DEDENT)
+
+        self.consume_empty_lines()
+
+        return BlockStmt(stmts)
 
     def stmt(self):
         if self.match(TokenKind.PRINT):
             return self.print_stmt()
         elif self.match(TokenKind.IF):
             return self.if_stmt()
+        elif self.match(TokenKind.COMMENT):
+            stmt = CommentStmt(self.previous())
+            _ = self.consume(TokenKind.NEWLINE)
+            return stmt
         else:
-            expr = self.expr()
-
-            if not self.match(TokenKind.NEWLINE):
-                raise SyntaxError("Expected '\n' after expression statement")
-
-            return ExprStmt(expr)
+            return self.expr_stmt()
 
     def parse(self) -> list[Stmt]:
         stmts = []
 
+        self.consume_empty_lines()
+
         while not self.is_done():
             stmts.append(self.var_stmt())
+            self.consume_empty_lines()
 
         return stmts
 
 
 def parse(source: str):
     tokens = tokenize(source)
-    print(tokens)
     parser = Parser(tokens)
     stmts = parser.parse()
     return stmts

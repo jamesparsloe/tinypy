@@ -36,6 +36,8 @@ class TokenKind(StrEnum):
     # TRUE = "True"
     # FALSE = "False"
 
+    COMMENT = "comment"
+
     EOF = "eof"
 
 
@@ -61,11 +63,11 @@ class Token:
     text: str = ""
     value: object | None = None
 
-    def __repr__(self) -> str:
-        if self.value is not None and self.value not in KEYWORDS:
-            return f"{self.kind}({self.value})"
-        else:
-            return self.kind
+    # def __repr__(self) -> str:
+    #     if self.value is not None and self.value not in KEYWORDS:
+    #         return f"{self.kind}({self.value})"
+    #     else:
+    #         return self.kind
 
 
 INDENT_SPACES = 4
@@ -123,8 +125,6 @@ class Tokenizer:
 
         current_level = self.indent_stack[-1]
 
-        # print(f"{self.line=} {indent_level=} {current_level=}")
-
         if indent_level > current_level:
             self.indent_stack.append(indent_level)
             self.add_token(TokenKind.INDENT)
@@ -146,10 +146,10 @@ class Tokenizer:
             if len(self.tokens) == 0 or self.tokens[-1].kind == TokenKind.NEWLINE:
                 self.whitespace()
 
-                if self.peek() == "\n":
-                    self.advance()
-                    self.line += 1
-                    continue
+                # if self.peek() == "\n":
+                #     _ = self.advance()
+                #     self.line += 1
+                #     continue
 
                 # HACK
                 self.start = self.position
@@ -177,6 +177,8 @@ class Tokenizer:
                 # swallow comments for now
                 while self.peek() != "\n" and not self.is_done():
                     self.advance()
+                comment = self.source[self.start : self.position]
+                self.add_token(TokenKind.COMMENT, value=comment)
             elif c == "\n":
                 # TODO: line number for new line??
                 self.add_token(TokenKind.NEWLINE)
@@ -250,3 +252,18 @@ def tokenize(source: str):
     tokenizer = Tokenizer(source)
     tokens = tokenizer.tokenize()
     return tokens
+
+
+def main():
+    import sys
+
+    file = sys.argv[1]
+    with open(file, "r") as f:
+        source = f.read()
+    tokens = tokenize(source)
+    for token in tokens:
+        print(token)
+
+
+if __name__ == "__main__":
+    main()
