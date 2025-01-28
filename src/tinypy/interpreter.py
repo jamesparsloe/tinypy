@@ -1,6 +1,7 @@
 from typing import Any
 from tinypy.tokenizer import TokenKind
 from tinypy.parser import (
+    CallExpr,
     IfStmt,
     Var,
     Visitor,
@@ -17,12 +18,16 @@ from tinypy.parser import (
     AssignStmt,
     BlockStmt,
     CommentStmt,
+    FunctionStmt,
+    ReturnStmt,
 )
 
 
 class Interpreter(Visitor):
     def __init__(self):
         self.values: dict[str, Any] = {}
+        self.functions: dict[str, FunctionStmt] = {}
+        self.return_value = None
 
     def interpret(self, stmts: list[Stmt]):
         for stmt in stmts:
@@ -63,8 +68,16 @@ class Interpreter(Visitor):
             return left == right
         elif kind == TokenKind.NOT_EQUALS:
             return left != right
+        elif kind == TokenKind.LESS:
+            return left < right
+        elif kind == TokenKind.GREATER:
+            return left > right
+        elif kind == TokenKind.LESS_EQUALS:
+            return left <= right
+        elif kind == TokenKind.GREATER_EQUALS:
+            return left >= right
         else:
-            return None
+            raise NotImplementedError(f"Binary operator {kind} not implemented")
 
     def visit_expr_stmt(self, stmt: ExprStmt):
         value = self.evaluate(stmt.expr)
@@ -114,6 +127,41 @@ class Interpreter(Visitor):
 
     def visit_comment_stmt(self, stmt: CommentStmt):
         pass
+
+    def visit_function_stmt(self, stmt: FunctionStmt):
+        name = stmt.name.value
+        assert name not in self.functions, "Cannot redefine"
+        self.functions[name] = stmt
+
+    def visit_call_expr(self, expr: CallExpr):
+        name = expr.callee.value
+        function = self.functions.get(name)
+        assert function is not None
+
+        args = [self.evaluate(arg) for arg in expr.arguments]
+
+        assert len(args) == len(function.params)
+
+        # Create new scope for function
+        previous_values = self.values.copy()
+
+        # Bind parameters to arguments
+        for (param_name, param_type), arg in zip(function.params, args):
+            self.values[param_name.value] = arg
+
+        self.return_value = None
+        self.execute(function.body)
+
+        self.values = previous_values
+
+        return self.return_value
+
+    def visit_return_stmt(self, stmt: ReturnStmt):
+        value = None
+        if stmt.value is not None:
+            value = self.evaluate(stmt.value)
+        self.return_value = value
+        return self.return_value
 
 
 def interpret(source: str):

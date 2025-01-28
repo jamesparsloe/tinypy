@@ -13,8 +13,12 @@ class TokenKind(StrEnum):
     STAR = "*"
     SLASH = "/"
     MINUS = "-"
-    LESS_THAN = "<"
+    LESS = "<"
+    LESS_EQUALS = "<="
+    GREATER = ">"
+    GREATER_EQUALS = ">="
     ARROW = "->"
+    COMMA = ","
 
     NEWLINE = "newline"
     INDENT = "indent"
@@ -171,7 +175,15 @@ class Tokenizer:
             elif c == "/":
                 self.add_token(TokenKind.SLASH)
             elif c == "<":
-                self.add_token(TokenKind.LESS_THAN)
+                if self.match("="):
+                    self.add_token(TokenKind.LESS_EQUALS)
+                else:
+                    self.add_token(TokenKind.LESS)
+            elif c == ">":
+                if self.match("="):
+                    self.add_token(TokenKind.GREATER_EQUALS)
+                else:
+                    self.add_token(TokenKind.GREATER)
             elif c == "#":
                 # swallow comments for now
                 while self.peek() != "\n" and not self.is_done():

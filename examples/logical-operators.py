@@ -6,5 +6,16 @@ print(x != True)
 # print(y)
 y: int = 4
 z: int = 5
+
+print("y")
+print(y)
+print("z")
+print(z)
+
+print("y == z")
 print(y == z)
+print("y != z")
 print(y != z)
+
+print("y > z")
+print(y > z)

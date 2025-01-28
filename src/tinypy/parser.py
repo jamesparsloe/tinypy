@@ -139,6 +139,54 @@ class AssignStmt(Stmt):
         return f"{self.name.value} = {self.value}"
 
 
+class FunctionStmt(Stmt):
+    def __init__(
+        self,
+        name: Token,
+        params: list[tuple[Token, Token]],
+        return_type: Token,
+        body: BlockStmt,
+    ):
+        self.name = name
+        self.params = params  # List of (name, type) tuples
+        self.return_type = return_type
+        self.body = body
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_function_stmt(self)
+
+    def __repr__(self) -> str:
+        params_str = ", ".join(
+            f"{name.value}: {type_.value}" for name, type_ in self.params
+        )
+        return f"def {self.name.value}({params_str}) -> {self.return_type.value}: {self.body}"
+
+
+class CallExpr(Expr):
+    def __init__(self, callee: Token, arguments: list[Expr]):
+        self.callee = callee
+        self.arguments = arguments
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_call_expr(self)
+
+    def __repr__(self) -> str:
+        args_str = ", ".join(str(arg) for arg in self.arguments)
+        return f"{self.callee}({args_str})"
+
+
+class ReturnStmt(Stmt):
+    def __init__(self, keyword: Token, value: Expr | None):
+        self.keyword = keyword
+        self.value = value
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_return_stmt(self)
+
+    def __repr__(self) -> str:
+        return f"return {self.value}" if self.value else "return"
+
+
 # NOTE: making it optional to implement all of these
 class Visitor:
     def visit_literal(self, expr: Literal):
@@ -172,6 +220,15 @@ class Visitor:
         raise NotImplementedError()
 
     def visit_comment_stmt(self, stmt: CommentStmt):
+        raise NotImplementedError()
+
+    def visit_function_stmt(self, stmt: FunctionStmt):
+        raise NotImplementedError()
+
+    def visit_call_expr(self, expr: CallExpr):
+        raise NotImplementedError()
+
+    def visit_return_stmt(self, stmt: ReturnStmt):
         raise NotImplementedError()
 
 
@@ -238,17 +295,14 @@ class Parser:
                 raise SyntaxError("Expected ')' after expression")
 
             return GroupingExpr(expr)
-        elif self.match(TokenKind.STR):
-            expr = Literal(self.previous().value)
-            return expr
-        elif self.match(TokenKind.BOOL):
+        elif self.match(TokenKind.INT, TokenKind.FLOAT, TokenKind.BOOL, TokenKind.STR):
             expr = Literal(self.previous().value)
             return expr
         else:
-            return self.number()
+            raise Exception("Should be unreachable!")
 
     def factor(self):
-        expr = self.primary()
+        expr = self.call_expr()
 
         while self.match(TokenKind.STAR, TokenKind.SLASH):
             op = self.previous()
@@ -269,12 +323,27 @@ class Parser:
 
         return expr
 
-    def equality(self):
+    def comparison(self):
         expr = self.term()
+
+        while self.match(
+            TokenKind.GREATER,
+            TokenKind.GREATER_EQUALS,
+            TokenKind.LESS,
+            TokenKind.LESS_EQUALS,
+        ):
+            op = self.previous()
+            right = self.term()
+            expr = BinaryExpr(expr, op, right)
+
+        return expr
+
+    def equality(self):
+        expr = self.comparison()
 
         while self.match(TokenKind.DOUBLE_EQUALS, TokenKind.NOT_EQUALS):
             op = self.previous()
-            right = self.term()
+            right = self.comparison()
             expr = BinaryExpr(expr, op, right)
 
         return expr
@@ -371,7 +440,15 @@ class Parser:
         return BlockStmt(stmts)
 
     def stmt(self):
-        if self.match(TokenKind.PRINT):
+        if self.match(TokenKind.DEF):
+            return self.function_stmt()
+        elif self.match(TokenKind.RETURN):
+            keyword = self.previous()
+            value = self.expr()
+            stmt = ReturnStmt(keyword, value)
+            _ = self.consume(TokenKind.NEWLINE)
+            return stmt
+        elif self.match(TokenKind.PRINT):
             return self.print_stmt()
         elif self.match(TokenKind.IF):
             return self.if_stmt()
@@ -381,6 +458,65 @@ class Parser:
             return stmt
         else:
             return self.expr_stmt()
+
+    def function_stmt(self):
+        name = self.consume(TokenKind.IDENTIFIER)
+
+        self.consume(TokenKind.LEFT_PAREN)
+        params = []
+
+        if not self.check(TokenKind.RIGHT_PAREN):
+            while True:
+                param_name = self.consume(TokenKind.IDENTIFIER)
+                _ = self.consume(TokenKind.COLON)
+
+                if not self.match(
+                    TokenKind.INT, TokenKind.FLOAT, TokenKind.STR, TokenKind.BOOL
+                ):
+                    raise SyntaxError()
+
+                param_type = self.previous()
+
+                params.append((param_name, param_type))
+
+                if not self.match(TokenKind.COMMA):
+                    break
+
+        self.consume(TokenKind.RIGHT_PAREN)
+        self.consume(TokenKind.ARROW)
+
+        if not self.match(
+            TokenKind.INT, TokenKind.FLOAT, TokenKind.BOOL, TokenKind.STR
+        ):
+            raise SyntaxError()
+
+        return_type = self.previous()
+
+        self.consume(TokenKind.COLON)
+        self.consume(TokenKind.NEWLINE)
+
+        body = self.block_stmt()
+
+        return FunctionStmt(name, params, return_type, body)
+
+    def call_expr(self):
+        expr = self.primary()
+
+        while True:
+            if self.match(TokenKind.LEFT_PAREN):
+                arguments = []
+                if not self.check(TokenKind.RIGHT_PAREN):
+                    while True:
+                        arguments.append(self.expr())
+                        if not self.match(TokenKind.COMMA):
+                            break
+
+                _ = self.consume(TokenKind.RIGHT_PAREN)
+                expr = CallExpr(expr.name, arguments)
+            else:
+                break
+
+        return expr
 
     def parse(self) -> list[Stmt]:
         stmts = []
