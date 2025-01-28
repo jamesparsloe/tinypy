@@ -269,8 +269,18 @@ class Parser:
 
         return expr
 
+    def equality(self):
+        expr = self.term()
+
+        while self.match(TokenKind.DOUBLE_EQUALS, TokenKind.NOT_EQUALS):
+            op = self.previous()
+            right = self.term()
+            expr = BinaryExpr(expr, op, right)
+
+        return expr
+
     def expr(self) -> Expr:
-        return self.term()
+        return self.equality()
 
     def print_stmt(self):
         if not self.match(TokenKind.LEFT_PAREN):
@@ -317,6 +327,8 @@ class Parser:
 
                 return VarStmt(name, type_annotation, expr)
             else:
+                # NOTE: I assume backtracking is bad and I should maybe check?
+                self.position -= 1
                 return self.stmt()
         else:
             return self.stmt()

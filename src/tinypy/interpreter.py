@@ -59,6 +59,10 @@ class Interpreter(Visitor):
             return left * right
         elif kind == TokenKind.SLASH:
             return left / right
+        elif kind == TokenKind.DOUBLE_EQUALS:
+            return left == right
+        elif kind == TokenKind.NOT_EQUALS:
+            return left != right
         else:
             return None
 

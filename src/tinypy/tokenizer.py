@@ -7,6 +7,8 @@ class TokenKind(StrEnum):
     RIGHT_PAREN = ")"
     COLON = ":"
     EQUALS = "="
+    DOUBLE_EQUALS = "=="
+    NOT_EQUALS = "!="
     PLUS = "+"
     STAR = "*"
     SLASH = "/"
@@ -26,6 +28,12 @@ class TokenKind(StrEnum):
     ELIF = "elif"
     ELSE = "else"
 
+    AND = "and"
+    OR = "or"
+    IS = "is"
+    NOT = "not"
+    NONE = "None"
+
     PRINT = "print"
 
     DEF = "def"
@@ -33,8 +41,6 @@ class TokenKind(StrEnum):
     IDENTIFIER = "identifier"
 
     BOOL = "bool"
-    # TRUE = "True"
-    # FALSE = "False"
 
     COMMENT = "comment"
 
@@ -53,6 +59,11 @@ KEYWORDS = {
     "bool": TokenKind.BOOL,
     "True": TokenKind.BOOL,
     "False": TokenKind.BOOL,
+    "and": TokenKind.AND,
+    "or": TokenKind.OR,
+    "is": TokenKind.IS,
+    "not": TokenKind.NOT,
+    "None": TokenKind.NONE,
 }
 
 
@@ -62,12 +73,6 @@ class Token:
     line: int = -1
     text: str = ""
     value: object | None = None
-
-    # def __repr__(self) -> str:
-    #     if self.value is not None and self.value not in KEYWORDS:
-    #         return f"{self.kind}({self.value})"
-    #     else:
-    #         return self.kind
 
 
 INDENT_SPACES = 4
@@ -146,12 +151,6 @@ class Tokenizer:
             if len(self.tokens) == 0 or self.tokens[-1].kind == TokenKind.NEWLINE:
                 self.whitespace()
 
-                # if self.peek() == "\n":
-                #     _ = self.advance()
-                #     self.line += 1
-                #     continue
-
-                # HACK
                 self.start = self.position
 
             if self.is_done():
@@ -191,7 +190,15 @@ class Tokenizer:
                 else:
                     self.add_token(TokenKind.MINUS)
             elif c == "=":
-                self.add_token(TokenKind.EQUALS)
+                if self.match("="):
+                    self.add_token(TokenKind.DOUBLE_EQUALS)
+                else:
+                    self.add_token(TokenKind.EQUALS)
+            elif c == "!":
+                if self.match("="):
+                    self.add_token(TokenKind.NOT_EQUALS)
+                else:
+                    raise Exception(f"line {self.line}: unexpected '!'")
             elif c == '"':
                 while self.peek() != '"':
                     self.advance()
