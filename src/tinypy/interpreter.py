@@ -10,6 +10,7 @@ from tinypy.parser import (
     Literal,
     Node,
     BinaryExpr,
+    UnaryExpr,
     GroupingExpr,
     ExprStmt,
     PrintStmt,
@@ -76,6 +77,10 @@ class Interpreter(Visitor):
             return left <= right
         elif kind == TokenKind.GREATER_EQUALS:
             return left >= right
+        elif kind == TokenKind.AND:
+            return left and right
+        elif kind == TokenKind.OR:
+            return left or right
         else:
             raise NotImplementedError(f"Binary operator {kind} not implemented")
 
@@ -162,6 +167,16 @@ class Interpreter(Visitor):
             value = self.evaluate(stmt.value)
         self.return_value = value
         return self.return_value
+
+    def visit_unary_expr(self, expr: UnaryExpr):
+        right = self.evaluate(expr.right)
+        
+        if expr.op.kind == TokenKind.NOT:
+            return not right
+        elif expr.op.kind == TokenKind.MINUS:
+            return -right
+        else:
+            raise NotImplementedError(f"Unary operator {expr.op.kind} not implemented")
 
 
 def interpret(source: str):

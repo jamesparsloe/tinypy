@@ -83,6 +83,35 @@ import pytest
                 Token(kind=TokenKind.EOF),
             ],
         ),
+        (
+            "not True",
+            [
+                Token(kind=TokenKind.NOT, value="not"),
+                Token(kind=TokenKind.BOOL, value=True),
+                Token(kind=TokenKind.NEWLINE),
+                Token(kind=TokenKind.EOF),
+            ],
+        ),
+        (
+            "True and False",
+            [
+                Token(kind=TokenKind.BOOL, value=True),
+                Token(kind=TokenKind.AND, value="and"),
+                Token(kind=TokenKind.BOOL, value=False),
+                Token(kind=TokenKind.NEWLINE),
+                Token(kind=TokenKind.EOF),
+            ],
+        ),
+        (
+            "True or False",
+            [
+                Token(kind=TokenKind.BOOL, value=True),
+                Token(kind=TokenKind.OR, value="or"),
+                Token(kind=TokenKind.BOOL, value=False),
+                Token(kind=TokenKind.NEWLINE),
+                Token(kind=TokenKind.EOF),
+            ],
+        ),
     ],
 )
 def test_tokenizer(source, expected):

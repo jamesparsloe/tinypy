@@ -49,6 +49,18 @@ class BinaryExpr(Expr):
         return f"({self.left} {self.op} {self.right})"
 
 
+class UnaryExpr(Expr):
+    def __init__(self, op: Token, right: Expr):
+        self.op = op
+        self.right = right
+
+    def accept(self, visitor: "Visitor") -> Any:
+        return visitor.visit_unary_expr(self)
+
+    def __repr__(self) -> str:
+        return f"({self.op} {self.right})"
+
+
 class ExprStmt(Stmt):
     def __init__(self, expr: Expr):
         self.expr = expr
@@ -198,6 +210,9 @@ class Visitor:
     def visit_binary_expr(self, expr: BinaryExpr):
         raise NotImplementedError()
 
+    def visit_unary_expr(self, expr: UnaryExpr):
+        raise NotImplementedError()
+
     def visit_expr_stmt(self, stmt: ExprStmt):
         raise NotImplementedError()
 
@@ -302,7 +317,7 @@ class Parser:
             raise Exception("Should be unreachable!")
 
     def factor(self):
-        expr = self.call_expr()
+        expr = self.unary()
 
         while self.match(TokenKind.STAR, TokenKind.SLASH):
             op = self.previous()
@@ -348,8 +363,28 @@ class Parser:
 
         return expr
 
+    def logical_or(self):
+        expr = self.logical_and()
+
+        while self.match(TokenKind.OR):
+            op = self.previous()
+            right = self.logical_and()
+            expr = BinaryExpr(expr, op, right)
+
+        return expr
+
+    def logical_and(self):
+        expr = self.equality()
+
+        while self.match(TokenKind.AND):
+            op = self.previous()
+            right = self.equality()
+            expr = BinaryExpr(expr, op, right)
+
+        return expr
+
     def expr(self) -> Expr:
-        return self.equality()
+        return self.logical_or()
 
     def print_stmt(self):
         if not self.match(TokenKind.LEFT_PAREN):
@@ -499,6 +534,14 @@ class Parser:
 
         return FunctionStmt(name, params, return_type, body)
 
+    def unary(self):
+        if self.match(TokenKind.NOT, TokenKind.MINUS):
+            op = self.previous()
+            right = self.unary()
+            return UnaryExpr(op, right)
+
+        return self.call_expr()
+
     def call_expr(self):
         expr = self.primary()
 
@@ -561,6 +604,20 @@ class Evaluator(Visitor):
             return left * right
         elif kind == TokenKind.SLASH:
             return left / right
+        elif kind == TokenKind.AND:
+            return left and right
+        elif kind == TokenKind.OR:
+            return left or right
+        else:
+            return None
+
+    def visit_unary_expr(self, expr: UnaryExpr):
+        right = self.evaluate(expr.right)
+        
+        if expr.op.kind == TokenKind.NOT:
+            return not right
+        elif expr.op.kind == TokenKind.MINUS:
+            return -right
         else:
             return None
 
