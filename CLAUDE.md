@@ -30,7 +30,9 @@ uv run tinypy script.py
 uv run tokenize script.py
 ```
 
-- When writing git commit messages don't mention that the commit was coauthored by Claude Code - just write a suitable commit message
+### git
+
+- When writing git commit messages **do not** mention that the commit was coauthored by Claude Code - just write a suitable commit message
 
 ## Architecture
 
