@@ -121,3 +121,51 @@ def test_tokenizer(source, expected):
     for token, expected_token in zip(tokens, expected):
         assert token.kind == expected_token.kind
         assert token.value == expected_token.value
+
+
+def test_string_escape_sequences():
+    """Test that escape sequences in strings are properly handled"""
+    # Test newline escape
+    tokens = tokenize('"Hello\\nWorld"')
+    assert tokens[0].kind == TokenKind.STR
+    assert tokens[0].value == "Hello\nWorld"
+    
+    # Test tab escape
+    tokens = tokenize('"Column1\\tColumn2"')
+    assert tokens[0].kind == TokenKind.STR
+    assert tokens[0].value == "Column1\tColumn2"
+    
+    # Test backslash escape
+    tokens = tokenize('"Path\\\\to\\\\file"')
+    assert tokens[0].kind == TokenKind.STR
+    assert tokens[0].value == "Path\\to\\file"
+    
+    # Test quote escape
+    tokens = tokenize('"She said \\"Hello\\""')
+    assert tokens[0].kind == TokenKind.STR
+    assert tokens[0].value == 'She said "Hello"'
+    
+    # Test multiple escapes
+    tokens = tokenize('"Line1\\nLine2\\tTabbed\\\\Backslash"')
+    assert tokens[0].kind == TokenKind.STR
+    assert tokens[0].value == "Line1\nLine2\tTabbed\\Backslash"
+
+
+def test_unterminated_string_error():
+    """Test that unterminated strings raise SyntaxError"""
+    with pytest.raises(SyntaxError, match="Unterminated string literal"):
+        tokenize('"this string is not closed')
+    
+    with pytest.raises(SyntaxError, match="Unterminated string literal"):
+        tokenize('"escape at end\\')
+
+
+def test_unknown_escape_sequences():
+    """Test that unknown escape sequences are treated literally"""
+    tokens = tokenize('"\\x unknown escape"')
+    assert tokens[0].kind == TokenKind.STR
+    assert tokens[0].value == "x unknown escape"
+    
+    tokens = tokenize('"\\z invalid"')
+    assert tokens[0].kind == TokenKind.STR
+    assert tokens[0].value == "z invalid"

@@ -212,10 +212,38 @@ class Tokenizer:
                 else:
                     raise Exception(f"line {self.line}: unexpected '!'")
             elif c == '"':
-                while self.peek() != '"':
-                    self.advance()
-                self.advance()
-                text = self.source[self.start + 1 : self.position - 1]
+                text = ""
+                while self.peek() != '"' and not self.is_done():
+                    char = self.peek()
+                    if char == '\\':
+                        self.advance()  # consume backslash
+                        if self.is_done():
+                            raise SyntaxError(f"line {self.line}: Unterminated string literal")
+                        escape_char = self.peek()
+                        if escape_char == 'n':
+                            text += '\n'
+                        elif escape_char == 't':
+                            text += '\t'
+                        elif escape_char == 'r':
+                            text += '\r'
+                        elif escape_char == '\\':
+                            text += '\\'
+                        elif escape_char == '"':
+                            text += '"'
+                        elif escape_char == "'":
+                            text += "'"
+                        else:
+                            # Unknown escape sequence, treat as literal
+                            text += escape_char
+                        self.advance()
+                    else:
+                        text += char
+                        self.advance()
+                
+                if self.is_done():
+                    raise SyntaxError(f"line {self.line}: Unterminated string literal")
+                
+                self.advance()  # consume closing quote
                 self.add_token(TokenKind.STR, value=text)
             elif c.isdigit():
                 while self.peek().isdigit():
