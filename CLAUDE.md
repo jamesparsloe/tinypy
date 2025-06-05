@@ -8,6 +8,8 @@ TinyPy is a toy Python interpreter implementing a minimal subset of Python, foll
 
 ## Development Commands
 
+Always use `uv` as our Python package and project manager.
+
 ```bash
 # Install dependencies
 uv sync --all-extras --dev
@@ -27,6 +29,8 @@ uv run tinypy script.py
 # Tokenize a file (debugging)
 uv run tokenize script.py
 ```
+
+- When writing git commit messages don't mention that the commit was coauthored by Claude Code - just write a suitable commit message
 
 ## Architecture
 
@@ -55,7 +59,3 @@ Key design patterns:
 - Whitespace handling has bugs
 - Print is currently a statement (should become a function)
 - Logical operators (`and`, `or`) are tokenized but not implemented
-
-## git
-
-- When writing git commit messages don't mention that the commit was coauthored by Claude Code - just write a suitable commit message
