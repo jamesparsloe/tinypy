@@ -21,3 +21,6 @@ jobs:
 
       - name: REPL tests
         run: chmod +x test.sh && ./test.sh
+
+      - name: Benchmarks
+        run: chmod +x benchmark.sh && ./benchmark.sh
