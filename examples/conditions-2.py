@@ -7,7 +7,6 @@ y = y + 10
 # print("y = " + y)
 
 if x:
-
     print("I'm the truthy branch!")
     print("Hello!")
     print(x)
@@ -16,7 +15,6 @@ if x:
 
 
 else:
-
     # unreachable
     print("I'm the else branch")
 

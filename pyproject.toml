@@ -1,12 +1,12 @@
 [project]
 name = "tinypy"
 version = "0.1.0"
-description = "Add your description here"
+description = "A toy version of Python, written in Python..."
 readme = "README.md"
 authors = [
     { name = "James Parsloe", email = "jamesparsloe@gmail.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
@@ -15,10 +15,18 @@ tokenize = "tinypy.tokenizer:main"
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.3.4",
-    "ruff>=0.9.2",
+    "pre-commit>=4.0.1",
+    "pytest>=9.0.2",
+    "pytest-mock>=3.15.1",
+    "ruff>=0.14.10",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.ruff]
+exclude = ["examples/"]
+
+[tool.ruff.lint]
+extend-ignore = ["E402"]

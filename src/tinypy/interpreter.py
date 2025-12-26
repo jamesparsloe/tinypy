@@ -1,5 +1,14 @@
 from typing import Any
 from tinypy.tokenizer import TokenKind
+
+
+class Return(Exception):
+    """Exception used to unwind the stack when a return statement is executed."""
+
+    def __init__(self, value: Any):
+        self.value = value
+
+
 from tinypy.parser import (
     CallExpr,
     IfStmt,
@@ -8,7 +17,6 @@ from tinypy.parser import (
     Stmt,
     Expr,
     Literal,
-    Node,
     BinaryExpr,
     UnaryExpr,
     GroupingExpr,
@@ -28,7 +36,6 @@ class Interpreter(Visitor):
     def __init__(self):
         self.values: dict[str, Any] = {}
         self.functions: dict[str, FunctionStmt] = {}
-        self.return_value = None
 
     def interpret(self, stmts: list[Stmt]):
         for stmt in stmts:
@@ -85,7 +92,7 @@ class Interpreter(Visitor):
             raise NotImplementedError(f"Binary operator {kind} not implemented")
 
     def visit_expr_stmt(self, stmt: ExprStmt):
-        value = self.evaluate(stmt.expr)
+        self.evaluate(stmt.expr)
 
     def visit_print_stmt(self, stmt: PrintStmt):
         value = self.evaluate(stmt.expr)
@@ -154,23 +161,25 @@ class Interpreter(Visitor):
         for (param_name, param_type), arg in zip(function.params, args):
             self.values[param_name.value] = arg
 
-        self.return_value = None
-        self.execute(function.body)
+        return_value = None
+        try:
+            self.execute(function.body)
+        except Return as ret:
+            return_value = ret.value
+        finally:
+            self.values = previous_values
 
-        self.values = previous_values
-
-        return self.return_value
+        return return_value
 
     def visit_return_stmt(self, stmt: ReturnStmt):
         value = None
         if stmt.value is not None:
             value = self.evaluate(stmt.value)
-        self.return_value = value
-        return self.return_value
+        raise Return(value)
 
     def visit_unary_expr(self, expr: UnaryExpr):
         right = self.evaluate(expr.right)
-        
+
         if expr.op.kind == TokenKind.NOT:
             return not right
         elif expr.op.kind == TokenKind.MINUS:

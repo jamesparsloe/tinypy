@@ -10,7 +10,7 @@ failures=0
 for script in examples/*.py; do
     output=$(uv run tinypy "$script" 2>&1)
     status=$?
-    
+
     if [ $status -eq 0 ]; then
         echo -e "\033[32m✓ $script passed\033[0m"
         ((passes++))

@@ -29,18 +29,18 @@ file_count=0
 for file in "$EXAMPLES_DIR"/*.py; do
     if [ -f "$file" ]; then
         filename=$(basename "$file")
-        
+
         echo "Benchmarking: $filename"
         echo "------------------------"
-        
+
         # Time Python execution using bash built-in time
         echo -n "Python:  "
         { time $PYTHON_CMD "$file" > /dev/null 2>&1; } 2>&1 | grep real | awk '{print $2}'
-        
+
         # Time TinyPy execution using bash built-in time
-        echo -n "TinyPy:  "  
+        echo -n "TinyPy:  "
         { time $TINYPY_CMD "$file" > /dev/null 2>&1; } 2>&1 | grep real | awk '{print $2}'
-        
+
         echo
         file_count=$((file_count + 1))
     fi

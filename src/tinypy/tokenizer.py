@@ -129,6 +129,10 @@ class Tokenizer:
         if len(self.tokens) > 0 and self.tokens[-1].kind != TokenKind.NEWLINE:
             return
 
+        # Skip indentation processing for blank lines
+        if self.peek() == "\n":
+            return
+
         indent_level, rem = divmod(spaces, INDENT_SPACES)
         assert rem == 0, "Invalid indent"
 
@@ -166,6 +170,8 @@ class Tokenizer:
                 self.add_token(TokenKind.LEFT_PAREN)
             elif c == ")":
                 self.add_token(TokenKind.RIGHT_PAREN)
+            elif c == ",":
+                self.add_token(TokenKind.COMMA)
             elif c == ":":
                 self.add_token(TokenKind.COLON)
             elif c == "+":
@@ -215,19 +221,21 @@ class Tokenizer:
                 text = ""
                 while self.peek() != '"' and not self.is_done():
                     char = self.peek()
-                    if char == '\\':
+                    if char == "\\":
                         self.advance()  # consume backslash
                         if self.is_done():
-                            raise SyntaxError(f"line {self.line}: Unterminated string literal")
+                            raise SyntaxError(
+                                f"line {self.line}: Unterminated string literal"
+                            )
                         escape_char = self.peek()
-                        if escape_char == 'n':
-                            text += '\n'
-                        elif escape_char == 't':
-                            text += '\t'
-                        elif escape_char == 'r':
-                            text += '\r'
-                        elif escape_char == '\\':
-                            text += '\\'
+                        if escape_char == "n":
+                            text += "\n"
+                        elif escape_char == "t":
+                            text += "\t"
+                        elif escape_char == "r":
+                            text += "\r"
+                        elif escape_char == "\\":
+                            text += "\\"
                         elif escape_char == '"':
                             text += '"'
                         elif escape_char == "'":
@@ -239,10 +247,10 @@ class Tokenizer:
                     else:
                         text += char
                         self.advance()
-                
+
                 if self.is_done():
                     raise SyntaxError(f"line {self.line}: Unterminated string literal")
-                
+
                 self.advance()  # consume closing quote
                 self.add_token(TokenKind.STR, value=text)
             elif c.isdigit():
@@ -270,7 +278,7 @@ class Tokenizer:
                     value = int(text)
                     self.add_token(TokenKind.INT, value=value)
             elif c.isalpha() or c == "_":
-                while self.peek().isalpha() or self.peek() == "_":
+                while self.peek().isalnum() or self.peek() == "_":
                     self.advance()
                 text = self.source[self.start : self.position]
                 # NOTE: we can also produce the int/float type annotations here - they just will not be associated with a value unlike the literals

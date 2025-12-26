@@ -1,5 +1,5 @@
 import pytest
-from tinypy.parser import parse, evaluate
+from tinypy.parser import evaluate
 
 
 @pytest.mark.parametrize(

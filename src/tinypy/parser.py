@@ -521,7 +521,11 @@ class Parser:
         self.consume(TokenKind.ARROW)
 
         if not self.match(
-            TokenKind.INT, TokenKind.FLOAT, TokenKind.BOOL, TokenKind.STR
+            TokenKind.INT,
+            TokenKind.FLOAT,
+            TokenKind.BOOL,
+            TokenKind.STR,
+            TokenKind.NONE,
         ):
             raise SyntaxError()
 
@@ -613,7 +617,7 @@ class Evaluator(Visitor):
 
     def visit_unary_expr(self, expr: UnaryExpr):
         right = self.evaluate(expr.right)
-        
+
         if expr.op.kind == TokenKind.NOT:
             return not right
         elif expr.op.kind == TokenKind.MINUS:

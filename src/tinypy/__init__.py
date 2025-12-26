@@ -1,5 +1,5 @@
 import sys
-from tinypy.parser import parse
+
 from tinypy.interpreter import interpret
 
 

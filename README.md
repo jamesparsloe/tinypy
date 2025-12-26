@@ -2,7 +2,7 @@
 
 A toy version of Python. For now I'm doing the absolute minimum to make `examples/fibonacci.py` work and then I'll expand to a slightly bigger subset of Python and see where I get to. I'm somewhat following along with the _Crafting Interpreters_ tree-walk interpreter design.
 
-## Getting Started
+## Getting started
 
 ```sh
 uv sync --all-extras --dev
@@ -14,25 +14,5 @@ uv run tinypy examples/statements.py
 
 ```sh
 uv run pytest
-```
-
-and also REPL tests
-
-```sh
-chmod +x test.sh
 ./test.sh
 ```
-
-## TODO
-
-- [ ] Error handling
-  - [ ] Syntax errors
-  - [ ] Runtime errors
-- [ ] Variables
-- [ ] Functions
-- [ ] Convert print statements to functions
-- [ ] Type checking??
-
-## BUGS
-
-- [ ] I've messed up newlines, dedents, and all that. Scripts are currently not robust to whitespace...
