@@ -84,7 +84,7 @@ class PrintStmt(Stmt):
 
 
 class VarStmt(Stmt):
-    def __init__(self, name: Token, type_annotation: Token, expr: Expr):
+    def __init__(self, name: Token, type_annotation: list[Token], expr: Expr):
         self.name = name
         self.type_annotation = type_annotation
         self.expr = expr
@@ -93,7 +93,8 @@ class VarStmt(Stmt):
         return visitor.visit_var_stmt(self)
 
     def __repr__(self) -> str:
-        return f"{self.name}: {self.type_annotation} = {self.expr}"
+        type_str = " | ".join(t.value for t in self.type_annotation)
+        return f"{self.name}: {type_str} = {self.expr}"
 
 
 class IfStmt(Stmt):
@@ -290,6 +291,34 @@ class Parser:
         while self.match(TokenKind.NEWLINE):
             ...
 
+    def type_annotation(self) -> list[Token]:
+        """Parse a type annotation, which can be a union type like 'int | str | None'."""
+        types = []
+
+        if not self.match(
+            TokenKind.INT,
+            TokenKind.FLOAT,
+            TokenKind.STR,
+            TokenKind.BOOL,
+            TokenKind.NONE,
+        ):
+            raise SyntaxError("Expected type annotation")
+
+        types.append(self.previous())
+
+        while self.match(TokenKind.PIPE):
+            if not self.match(
+                TokenKind.INT,
+                TokenKind.FLOAT,
+                TokenKind.STR,
+                TokenKind.BOOL,
+                TokenKind.NONE,
+            ):
+                raise SyntaxError("Expected type after '|'")
+            types.append(self.previous())
+
+        return types
+
     def number(self):
         expr = None
         if self.match(TokenKind.INT, TokenKind.FLOAT):
@@ -310,7 +339,13 @@ class Parser:
                 raise SyntaxError("Expected ')' after expression")
 
             return GroupingExpr(expr)
-        elif self.match(TokenKind.INT, TokenKind.FLOAT, TokenKind.BOOL, TokenKind.STR):
+        elif self.match(
+            TokenKind.INT,
+            TokenKind.FLOAT,
+            TokenKind.BOOL,
+            TokenKind.STR,
+            TokenKind.NONE,
+        ):
             expr = Literal(self.previous().value)
             return expr
         else:
@@ -415,12 +450,7 @@ class Parser:
 
                 _ = self.advance()
 
-                if not self.match(
-                    TokenKind.INT, TokenKind.FLOAT, TokenKind.STR, TokenKind.BOOL
-                ):
-                    raise SyntaxError("Expected type annotation")
-
-                type_annotation = self.previous()
+                type_annotation = self.type_annotation()
 
                 if not self.match(TokenKind.EQUALS):
                     raise SyntaxError("Expected '=' after type annotation")

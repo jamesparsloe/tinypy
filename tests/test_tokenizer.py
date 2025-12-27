@@ -112,6 +112,18 @@ import pytest
                 Token(kind=TokenKind.EOF),
             ],
         ),
+        (
+            "x: int | str",
+            [
+                Token(kind=TokenKind.IDENTIFIER, value="x"),
+                Token(kind=TokenKind.COLON),
+                Token(kind=TokenKind.INT, value="int"),
+                Token(kind=TokenKind.PIPE),
+                Token(kind=TokenKind.STR, value="str"),
+                Token(kind=TokenKind.NEWLINE),
+                Token(kind=TokenKind.EOF),
+            ],
+        ),
     ],
 )
 def test_tokenizer(source, expected):

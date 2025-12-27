@@ -19,6 +19,7 @@ class TokenKind(StrEnum):
     GREATER_EQUALS = ">="
     ARROW = "->"
     COMMA = ","
+    PIPE = "|"
 
     NEWLINE = "newline"
     INDENT = "indent"
@@ -172,6 +173,8 @@ class Tokenizer:
                 self.add_token(TokenKind.RIGHT_PAREN)
             elif c == ",":
                 self.add_token(TokenKind.COMMA)
+            elif c == "|":
+                self.add_token(TokenKind.PIPE)
             elif c == ":":
                 self.add_token(TokenKind.COLON)
             elif c == "+":
