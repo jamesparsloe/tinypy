@@ -11,7 +11,10 @@ class TokenKind(StrEnum):
     NOT_EQUALS = "!="
     PLUS = "+"
     STAR = "*"
+    DOUBLE_STAR = "**"
     SLASH = "/"
+    DOUBLE_SLASH = "//"
+    PERCENT = "%"
     MINUS = "-"
     LESS = "<"
     LESS_EQUALS = "<="
@@ -58,6 +61,7 @@ KEYWORDS = {
     "str": TokenKind.STR,
     "print": TokenKind.PRINT,
     "if": TokenKind.IF,
+    "elif": TokenKind.ELIF,
     "else": TokenKind.ELSE,
     "def": TokenKind.DEF,
     "return": TokenKind.RETURN,
@@ -180,9 +184,17 @@ class Tokenizer:
             elif c == "+":
                 self.add_token(TokenKind.PLUS)
             elif c == "*":
-                self.add_token(TokenKind.STAR)
+                if self.match("*"):
+                    self.add_token(TokenKind.DOUBLE_STAR)
+                else:
+                    self.add_token(TokenKind.STAR)
             elif c == "/":
-                self.add_token(TokenKind.SLASH)
+                if self.match("/"):
+                    self.add_token(TokenKind.DOUBLE_SLASH)
+                else:
+                    self.add_token(TokenKind.SLASH)
+            elif c == "%":
+                self.add_token(TokenKind.PERCENT)
             elif c == "<":
                 if self.match("="):
                     self.add_token(TokenKind.LESS_EQUALS)

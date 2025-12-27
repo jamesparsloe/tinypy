@@ -354,7 +354,9 @@ class Parser:
     def factor(self):
         expr = self.unary()
 
-        while self.match(TokenKind.STAR, TokenKind.SLASH):
+        while self.match(
+            TokenKind.STAR, TokenKind.SLASH, TokenKind.DOUBLE_SLASH, TokenKind.PERCENT
+        ):
             op = self.previous()
             right = self.factor()
             expr = BinaryExpr(expr, op, right)
@@ -475,7 +477,10 @@ class Parser:
         if_branch = self.block_stmt()
 
         else_branch = None
-        if self.match(TokenKind.ELSE):
+        if self.match(TokenKind.ELIF):
+            # elif is sugar for else: if ...
+            else_branch = self.if_stmt()
+        elif self.match(TokenKind.ELSE):
             _ = self.consume(TokenKind.COLON)
             _ = self.consume(TokenKind.NEWLINE)
             else_branch = self.block_stmt()
@@ -574,7 +579,17 @@ class Parser:
             right = self.unary()
             return UnaryExpr(op, right)
 
-        return self.call_expr()
+        return self.power()
+
+    def power(self):
+        expr = self.call_expr()
+
+        if self.match(TokenKind.DOUBLE_STAR):
+            op = self.previous()
+            right = self.power()  # Right-associative
+            expr = BinaryExpr(expr, op, right)
+
+        return expr
 
     def call_expr(self):
         expr = self.primary()
@@ -638,6 +653,12 @@ class Evaluator(Visitor):
             return left * right
         elif kind == TokenKind.SLASH:
             return left / right
+        elif kind == TokenKind.DOUBLE_SLASH:
+            return left // right
+        elif kind == TokenKind.PERCENT:
+            return left % right
+        elif kind == TokenKind.DOUBLE_STAR:
+            return left**right
         elif kind == TokenKind.AND:
             return left and right
         elif kind == TokenKind.OR:
